@@ -2,13 +2,13 @@
 
 I built this because trying to diet while eating at Foco is genuinely painful.
 
-If you're a Dartmouth student, you know the deal — Foco (53 Commons) is where you eat most of your meals. The dining website shows you what's being served, but that's about it. There's no way to say "I have 800 calories left for dinner, what can I actually eat?" You're left guessing, mentally adding up numbers, or just giving up and grabbing whatever looks good.
+If you're a Dartmouth student, you know the deal — Foco (53 Commons) is where you eat most of your meals. The dining website technically has calorie info, but the UI is so bad and unintuitive that actually finding it feels like a scavenger hunt. You have to click through multiple pages, expand individual items, and even then there's no way to say "I have 800 calories left for dinner, what can I actually eat?" You're left guessing, mentally adding up numbers, or just giving up and grabbing whatever looks good.
 
 I got tired of that. I wanted to set a calorie target for the day, pull up tonight's menu, and build a plate that actually fits my goals — with a running total that updates as I add items. That's what this app does.
 
 ## Why I Built This
 
-Every semester I'd try to be more intentional about what I eat. Cut, bulk, maintain — whatever the goal was, it always ran into the same wall: Foco's menu changes daily, the nutrition info is buried, and there's no tool that ties it all together into a plan.
+Every semester I'd try to be more intentional about what I eat. Cut, bulk, maintain — whatever the goal was, it always ran into the same wall: Foco's menu changes daily, and the nutrition info is technically there but buried under the worst UI imaginable. You'd have to click into each item one by one just to see the calories — forget about comparing options or planning a full meal.
 
 The dining site lists items, sure. But it doesn't let you:
 - Set a calorie or protein budget
