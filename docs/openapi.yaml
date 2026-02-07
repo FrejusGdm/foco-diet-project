@@ -1,0 +1,643 @@
+openapi: 3.1.0
+info:
+  title: Foco Diet Planner API
+  version: 1.0.0
+  description: |
+    API specification for the Foco Diet Planner application.
+
+    This application uses **Convex** as its backend, which provides real-time
+    reactive queries and mutations instead of traditional REST endpoints.
+    This OpenAPI spec documents the logical API surface for reference and
+    integration purposes.
+
+    ## Architecture
+    - **Queries**: Read-only, real-time subscriptions (data updates automatically)
+    - **Mutations**: Write operations that modify database state
+    - **Actions**: Side-effect operations (e.g., web scraping) that can call mutations
+
+    ## Authentication
+    All authenticated endpoints require a valid Clerk JWT token forwarded to
+    Convex via the ConvexProviderWithClerk integration.
+  contact:
+    name: Foco Diet Planner Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://{deployment}.convex.cloud
+    description: Convex Backend
+    variables:
+      deployment:
+        default: your-project
+        description: Your Convex deployment identifier
+
+tags:
+  - name: Menu Items
+    description: Operations for browsing and managing daily menu items
+  - name: User Preferences
+    description: User diet goals and preference management
+  - name: Meal Plans
+    description: Daily meal plan creation and management
+  - name: Scraping
+    description: Automated menu data collection from Foco website
+
+paths:
+  /api/query/menuItems/list:
+    post:
+      tags: [Menu Items]
+      summary: List menu items by date
+      description: |
+        Returns all menu items for a specific date, optionally filtered by meal type.
+        This is a **real-time query** - when used via Convex React hooks, the UI
+        updates automatically when menu data changes.
+      operationId: menuItemsList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+                  example: "2026-02-07"
+                  description: ISO date string (YYYY-MM-DD)
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner]
+                  description: Optional filter by meal type
+      responses:
+        "200":
+          description: List of menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MenuItem"
+
+  /api/query/menuItems/getById:
+    post:
+      tags: [Menu Items]
+      summary: Get a single menu item
+      operationId: menuItemsGetById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+                  description: Convex document ID
+      responses:
+        "200":
+          description: Menu item details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenuItem"
+
+  /api/query/menuItems/getToday:
+    post:
+      tags: [Menu Items]
+      summary: Get today's available menu items
+      operationId: menuItemsGetToday
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner]
+      responses:
+        "200":
+          description: Today's available menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MenuItem"
+
+  /api/query/menuItems/search:
+    post:
+      tags: [Menu Items]
+      summary: Search menu items by name
+      operationId: menuItemsSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, searchTerm]
+              properties:
+                date:
+                  type: string
+                  format: date
+                searchTerm:
+                  type: string
+                  description: Text to search in item names and locations
+      responses:
+        "200":
+          description: Matching menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MenuItem"
+
+  /api/query/menuItems/getAvailableDates:
+    post:
+      tags: [Menu Items]
+      summary: Get dates with menu data
+      operationId: menuItemsGetAvailableDates
+      responses:
+        "200":
+          description: List of dates (newest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: date
+
+  /api/mutation/menuItems/seedDemoData:
+    post:
+      tags: [Menu Items]
+      summary: Seed demo menu data for testing
+      operationId: menuItemsSeedDemoData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Seed result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted:
+                    type: integer
+                  total:
+                    type: integer
+
+  /api/query/userPreferences/get:
+    post:
+      tags: [User Preferences]
+      summary: Get current user's preferences
+      description: |
+        Returns the authenticated user's diet preferences.
+        Returns null if no preferences have been set yet.
+      operationId: userPreferencesGet
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: User preferences (or null)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/UserPreferences"
+                  - type: "null"
+
+  /api/mutation/userPreferences/update:
+    post:
+      tags: [User Preferences]
+      summary: Create or update user preferences
+      description: |
+        Upserts user preferences. Creates a new record if none exists,
+        updates the existing record otherwise.
+      operationId: userPreferencesUpdate
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dailyCalorieGoal, preferredMealTypes]
+              properties:
+                dailyCalorieGoal:
+                  type: number
+                  minimum: 500
+                  maximum: 10000
+                  example: 1500
+                dailyProteinGoal:
+                  type: number
+                  minimum: 0
+                  maximum: 500
+                  example: 100
+                preferredMealTypes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [breakfast, lunch, dinner]
+                  minItems: 1
+                  example: [breakfast, lunch, dinner]
+                dietaryRestrictions:
+                  type: array
+                  items:
+                    type: string
+                  example: [vegetarian, gluten-free]
+      responses:
+        "200":
+          description: Preferences saved successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Document ID of the preferences record
+
+  /api/query/mealPlans/getByDate:
+    post:
+      tags: [Meal Plans]
+      summary: Get meal plan for a specific date
+      operationId: mealPlansGetByDate
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Meal plan with resolved meal items
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/MealPlan"
+                  - type: "null"
+
+  /api/query/mealPlans/getCurrent:
+    post:
+      tags: [Meal Plans]
+      summary: Get today's meal plan
+      operationId: mealPlansGetCurrent
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Today's meal plan (or null)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/MealPlan"
+                  - type: "null"
+
+  /api/mutation/mealPlans/addMeal:
+    post:
+      tags: [Meal Plans]
+      summary: Add a menu item to meal plan
+      description: |
+        Adds a menu item to the user's meal plan for the specified date and meal type.
+        Creates the plan if it doesn't exist. Prevents duplicate additions.
+        Automatically recalculates total calories and protein.
+      operationId: mealPlansAddMeal
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, mealType, menuItemId]
+              properties:
+                date:
+                  type: string
+                  format: date
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner]
+                menuItemId:
+                  type: string
+                  description: Convex document ID of the menu item
+      responses:
+        "200":
+          description: Meal plan ID
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /api/mutation/mealPlans/removeMeal:
+    post:
+      tags: [Meal Plans]
+      summary: Remove a menu item from meal plan
+      operationId: mealPlansRemoveMeal
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, mealType, menuItemId]
+              properties:
+                date:
+                  type: string
+                  format: date
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner]
+                menuItemId:
+                  type: string
+      responses:
+        "200":
+          description: Meal plan ID
+
+  /api/mutation/mealPlans/clear:
+    post:
+      tags: [Meal Plans]
+      summary: Clear all meals from a day's plan
+      operationId: mealPlansClear
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Plan cleared
+
+  /api/action/scraping/scrapeFocoMenu:
+    post:
+      tags: [Scraping]
+      summary: Scrape Foco menu for a date
+      description: |
+        Triggers a Browserbase-powered browser automation session to scrape
+        the Foco dining website. Navigates through breakfast, lunch, and dinner
+        tabs, extracting menu items with nutritional information.
+
+        This is an internal action typically triggered by the daily cron job,
+        but can be invoked manually for testing.
+
+        **Required environment variables:**
+        - `BROWSERBASE_API_KEY`
+        - `BROWSERBASE_PROJECT_ID`
+        - `FOCO_WEBSITE_URL`
+      operationId: scrapingScrapeFocoMenu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Scraping result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  itemsScraped:
+                    type: integer
+                  duration:
+                    type: integer
+                    description: Duration in milliseconds
+                  sessionReplay:
+                    type: string
+                    format: uri
+                    description: Browserbase session replay URL for debugging
+
+components:
+  securitySchemes:
+    clerkAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Clerk JWT token with "convex" template.
+        Automatically handled by ConvexProviderWithClerk in the frontend.
+
+  schemas:
+    MenuItem:
+      type: object
+      required:
+        - _id
+        - name
+        - calories
+        - protein
+        - location
+        - mealType
+        - date
+        - available
+        - createdAt
+        - uniqueKey
+      properties:
+        _id:
+          type: string
+          description: Convex document ID
+        name:
+          type: string
+          example: Grilled Chicken Breast
+        calories:
+          type: number
+          example: 350
+        protein:
+          type: number
+          example: 42
+        location:
+          type: string
+          example: Grill
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner]
+        date:
+          type: string
+          format: date
+        available:
+          type: boolean
+        createdAt:
+          type: number
+          description: Unix timestamp in milliseconds
+        uniqueKey:
+          type: string
+          description: Composite deduplication key (name-location-mealType-date)
+        carbs:
+          type: number
+          nullable: true
+        fat:
+          type: number
+          nullable: true
+        fiber:
+          type: number
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        servingSize:
+          type: string
+          nullable: true
+
+    UserPreferences:
+      type: object
+      required:
+        - _id
+        - userId
+        - dailyCalorieGoal
+        - preferredMealTypes
+        - createdAt
+        - updatedAt
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+          description: Clerk user subject ID
+        dailyCalorieGoal:
+          type: number
+          example: 1500
+        dailyProteinGoal:
+          type: number
+          nullable: true
+          example: 100
+        preferredMealTypes:
+          type: array
+          items:
+            type: string
+            enum: [breakfast, lunch, dinner]
+        dietaryRestrictions:
+          type: array
+          items:
+            type: string
+          nullable: true
+        createdAt:
+          type: number
+        updatedAt:
+          type: number
+
+    MealPlan:
+      type: object
+      required:
+        - _id
+        - userId
+        - date
+        - meals
+        - totalCalories
+        - totalProtein
+        - createdAt
+        - updatedAt
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        date:
+          type: string
+          format: date
+        meals:
+          type: object
+          properties:
+            breakfast:
+              type: array
+              items:
+                type: string
+              nullable: true
+              description: Array of MenuItem document IDs
+            lunch:
+              type: array
+              items:
+                type: string
+              nullable: true
+            dinner:
+              type: array
+              items:
+                type: string
+              nullable: true
+        totalCalories:
+          type: number
+          example: 1250
+        totalProtein:
+          type: number
+          example: 85
+        createdAt:
+          type: number
+        updatedAt:
+          type: number
+        resolvedMeals:
+          type: object
+          description: Populated menu item objects (returned by queries)
+          properties:
+            breakfast:
+              type: array
+              items:
+                $ref: "#/components/schemas/MenuItem"
+            lunch:
+              type: array
+              items:
+                $ref: "#/components/schemas/MenuItem"
+            dinner:
+              type: array
+              items:
+                $ref: "#/components/schemas/MenuItem"
+
+    ScrapeLog:
+      type: object
+      properties:
+        _id:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [started, completed, failed]
+        itemsScraped:
+          type: integer
+        errorMessage:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+          description: Duration in milliseconds
+        createdAt:
+          type: number
