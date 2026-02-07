@@ -60,3 +60,7 @@ logs
 
 # pnpm
 .pnpm-store/
+package-lock.json
+
+# Claude Code
+.claude/

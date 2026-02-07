@@ -10,10 +10,10 @@ interface NutritionBadgeProps {
 }
 
 const variantStyles: Record<string, string> = {
-  calories: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800",
-  protein: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  carbs: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-  fat: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  calories: "bg-[var(--color-calories)]/10 text-[var(--color-calories)] border-[var(--color-calories)]/20",
+  protein: "bg-[var(--color-protein)]/10 text-[var(--color-protein)] border-[var(--color-protein)]/20",
+  carbs: "bg-[var(--color-carbs)]/10 text-[var(--color-carbs)] border-[var(--color-carbs)]/20",
+  fat: "bg-[var(--color-fat)]/10 text-[var(--color-fat)] border-[var(--color-fat)]/20",
 };
 
 export default function NutritionBadge({
@@ -28,12 +28,11 @@ export default function NutritionBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("gap-1 font-normal", variantStyles[variant], className)}
+      className={cn("gap-1 rounded-full font-normal", variantStyles[variant], className)}
     >
       <span className="text-xs opacity-70">{label}</span>
-      <span className="font-semibold">
-        {value}
-        {displayUnit}
+      <span className="tabular-nums font-semibold">
+        {value} {displayUnit}
       </span>
     </Badge>
   );

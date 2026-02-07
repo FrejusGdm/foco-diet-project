@@ -16,8 +16,8 @@ const crons = cronJobs();
 crons.daily(
   "scrape-daily-foco-menu",
   { hourUTC: 5, minuteUTC: 0 },
-  internal.scraping.scrapeFocoMenu,
-  { date: new Date().toISOString().split("T")[0] }
+  internal.scrapingActions.scrapeFocoMenu,
+  {}
 );
 
 export default crons;

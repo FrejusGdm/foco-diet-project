@@ -32,6 +32,12 @@ function getTodayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
+const mealBorderColors = {
+  breakfast: "border-l-amber-500",
+  lunch: "border-l-emerald-600 dark:border-l-emerald-500",
+  dinner: "border-l-indigo-500",
+} as const;
+
 /**
  * Dashboard page - main hub for authenticated users.
  * Shows calorie goal progress, today's meal plan summary,
@@ -63,14 +69,14 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="font-display text-3xl tracking-tight">
             Welcome back{user?.firstName ? `, ${user.firstName}` : ""}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
@@ -80,29 +86,29 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/meal-planner">
-            <Button className="gap-2">
+          <Button asChild className="gap-2">
+            <Link href="/meal-planner">
               <Plus className="h-4 w-4" />
               Plan Meals
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           {!preferences && (
-            <Link href="/preferences">
-              <Button variant="outline" className="gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/preferences">
                 <Settings className="h-4 w-4" />
                 Set Goals
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Calorie Goal Card */}
-      <Card>
+      <Card className="border-t-[3px] border-t-primary">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Daily Calorie Goal</CardTitle>
+            <Target className="h-5 w-5 text-primary" />
+            <CardTitle className="font-display text-xl">Daily Calorie Goal</CardTitle>
           </div>
           <CardDescription>
             {preferences
@@ -152,12 +158,12 @@ export default function DashboardPage() {
           const Icon = meal.icon;
           const count = mealCounts[meal.key];
           return (
-            <Card key={meal.key}>
+            <Card key={meal.key} className={`border-l-[3px] ${mealBorderColors[meal.key]}`}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base">{meal.label}</CardTitle>
+                    <CardTitle className="font-display text-lg">{meal.label}</CardTitle>
                   </div>
                   {count > 0 && (
                     <Badge variant="success">{count} items</Badge>
@@ -173,12 +179,12 @@ export default function DashboardPage() {
                     {count} item{count !== 1 ? "s" : ""} selected
                   </p>
                 ) : (
-                  <Link href="/meal-planner">
-                    <Button variant="ghost" size="sm" className="gap-1 px-0">
+                  <Button asChild variant="ghost" size="sm" className="gap-1 px-0">
+                    <Link href="/meal-planner">
                       <Plus className="h-3 w-3" />
                       Add {meal.label.toLowerCase()}
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 )}
               </CardContent>
             </Card>
@@ -190,13 +196,13 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <UtensilsCrossed className="h-5 w-5 text-emerald-600" />
-            <CardTitle>Today&apos;s Menu</CardTitle>
+            <UtensilsCrossed className="h-5 w-5 text-primary" />
+            <CardTitle className="font-display text-xl">Today&apos;s Menu</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           {todayMenuItems === undefined ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div role="status" className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading menu data...
             </div>
@@ -205,16 +211,16 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">
                 {totalMenuItems} menu items available today
               </p>
-              <Link href="/meal-planner">
-                <Button variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/meal-planner">
                   Browse Menu
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                No menu data available for today. The scraper runs at midnight,
+                No menu data available for today. The menu updates daily,
                 or you can load demo data to test the app.
               </p>
               <Button

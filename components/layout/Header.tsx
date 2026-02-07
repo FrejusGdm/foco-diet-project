@@ -10,8 +10,9 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useState, type ReactNode, lazy, Suspense } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -22,7 +23,7 @@ const navItems = [
 
 const isClerkConfigured =
   typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 20;
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
 /**
  * Auth-aware wrapper components.
@@ -32,19 +33,16 @@ const isClerkConfigured =
  */
 function AuthSignedIn({ children }: { children: ReactNode }) {
   if (!isClerkConfigured) return null;
-  const { SignedIn } = require("@clerk/nextjs");
   return <SignedIn>{children}</SignedIn>;
 }
 
 function AuthSignedOut({ children }: { children: ReactNode }) {
   if (!isClerkConfigured) return <>{children}</>;
-  const { SignedOut } = require("@clerk/nextjs");
   return <SignedOut>{children}</SignedOut>;
 }
 
 function AuthUserButton() {
   if (!isClerkConfigured) return null;
-  const { UserButton } = require("@clerk/nextjs");
   return (
     <UserButton
       afterSignOutUrl="/"
@@ -58,12 +56,12 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="mr-6 flex items-center space-x-2">
-          <Salad className="h-6 w-6 text-emerald-600" />
-          <span className="hidden font-bold sm:inline-block">
+          <Salad className="h-6 w-6 text-primary" />
+          <span className="hidden font-display text-lg sm:inline-block">
             Foco Diet Planner
           </span>
         </Link>
@@ -75,19 +73,21 @@ export default function Header() {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "gap-2",
-                      isActive && "bg-secondary font-medium"
-                    )}
-                  >
+                <Button
+                  key={item.href}
+                  asChild
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "gap-2",
+                    isActive && "bg-secondary font-medium"
+                  )}
+                >
+                  <Link href={item.href}>
                     <Icon className="h-4 w-4" />
                     {item.label}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               );
             })}
           </nav>
@@ -99,14 +99,14 @@ export default function Header() {
             <AuthUserButton />
           </AuthSignedIn>
           <AuthSignedOut>
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/sign-in">
                 Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Get Started</Button>
-            </Link>
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/sign-up">Get Started</Link>
+            </Button>
           </AuthSignedOut>
 
           {/* Mobile menu toggle */}
@@ -116,6 +116,8 @@ export default function Header() {
               size="icon"
               className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -136,19 +138,20 @@ export default function Header() {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
-                  <Link
+                  <Button
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    asChild
+                    variant={isActive ? "secondary" : "ghost"}
+                    className="w-full justify-start gap-2"
                   >
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      className="w-full justify-start gap-2"
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       <Icon className="h-4 w-4" />
                       {item.label}
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 );
               })}
             </nav>

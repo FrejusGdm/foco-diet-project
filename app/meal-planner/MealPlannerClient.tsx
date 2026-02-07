@@ -115,8 +115,8 @@ export default function MealPlannerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Meal Planner</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-3xl tracking-tight">Meal Planner</h1>
+        <p className="text-muted-foreground mt-1">
           Browse today&apos;s menu and build your meal plan
         </p>
       </div>
@@ -130,15 +130,15 @@ export default function MealPlannerPage() {
             onValueChange={(v) => setActiveMeal(v as MealType)}
           >
             <TabsList className="w-full">
-              <TabsTrigger value="breakfast" className="flex-1 gap-1">
+              <TabsTrigger value="breakfast" className="flex-1 gap-1.5">
                 <Coffee className="h-4 w-4" />
                 Breakfast
               </TabsTrigger>
-              <TabsTrigger value="lunch" className="flex-1 gap-1">
+              <TabsTrigger value="lunch" className="flex-1 gap-1.5">
                 <Sun className="h-4 w-4" />
                 Lunch
               </TabsTrigger>
-              <TabsTrigger value="dinner" className="flex-1 gap-1">
+              <TabsTrigger value="dinner" className="flex-1 gap-1.5">
                 <Moon className="h-4 w-4" />
                 Dinner
               </TabsTrigger>
@@ -148,10 +148,12 @@ export default function MealPlannerPage() {
             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                type="search"
                 placeholder="Search menu items..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                autoComplete="off"
+                className="pl-9 bg-card"
               />
             </div>
 
@@ -159,8 +161,9 @@ export default function MealPlannerPage() {
             {(["breakfast", "lunch", "dinner"] as const).map((mealType) => (
               <TabsContent key={mealType} value={mealType}>
                 {menuItems === undefined ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div role="status" className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <span className="sr-only">Loading menu items</span>
                   </div>
                 ) : filteredItems.length === 0 ? (
                   <Card>

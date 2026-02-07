@@ -72,7 +72,7 @@ export default function MealPlanSummary({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Your Meal Plan</CardTitle>
+            <CardTitle className="font-display text-xl">Your Meal Plan</CardTitle>
             <p className="text-sm text-muted-foreground">{formattedDate}</p>
           </div>
           {allMeals.length > 0 && onClearPlan && (
@@ -104,7 +104,7 @@ export default function MealPlanSummary({
           />
         </div>
 
-        <Separator />
+        <Separator className="bg-border/60" />
 
         {allMeals.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
@@ -115,25 +115,25 @@ export default function MealPlanSummary({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {mealSections.map(
               (section) =>
                 section.items.length > 0 && (
                   <div key={section.key}>
-                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">
+                    <h4 className="mb-2 font-display text-sm text-muted-foreground">
                       {section.label}
                     </h4>
                     <div className="space-y-1">
                       {section.items.map((item) => (
                         <div
                           key={item._id}
-                          className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/50"
+                          className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-muted/50"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm">{item.name}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                            <span className="tabular-nums text-sm font-medium" style={{ color: "var(--color-calories)" }}>
                               {item.calories} kcal
                             </span>
                             {onRemoveMeal && (
@@ -144,6 +144,7 @@ export default function MealPlanSummary({
                                 onClick={() =>
                                   onRemoveMeal(section.key, item._id)
                                 }
+                                aria-label={`Remove ${item.name}`}
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>

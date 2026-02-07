@@ -86,11 +86,11 @@ export default function PreferencesPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <Settings className="h-6 w-6 text-emerald-600" />
+        <h1 className="flex items-center gap-2 font-display text-3xl tracking-tight">
+          <Settings className="h-7 w-7 text-primary" />
           Preferences
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-1">
           Configure your diet goals and meal preferences
         </p>
       </div>
@@ -98,7 +98,7 @@ export default function PreferencesPage() {
       {/* Calorie & Protein Goals */}
       <Card>
         <CardHeader>
-          <CardTitle>Daily Goals</CardTitle>
+          <CardTitle className="font-display text-xl">Daily Goals</CardTitle>
           <CardDescription>
             Set your daily calorie and protein targets
           </CardDescription>
@@ -114,6 +114,7 @@ export default function PreferencesPage() {
               step={50}
               value={calorieGoal}
               onChange={(e) => setCalorieGoal(Number(e.target.value))}
+              className="bg-card"
             />
             <p className="text-xs text-muted-foreground">
               Recommended: 1500-2500 kcal for most adults
@@ -130,6 +131,7 @@ export default function PreferencesPage() {
               step={5}
               value={proteinGoal}
               onChange={(e) => setProteinGoal(Number(e.target.value))}
+              className="bg-card"
             />
             <p className="text-xs text-muted-foreground">
               Recommended: 0.8-1.2g per kg of body weight
@@ -141,21 +143,30 @@ export default function PreferencesPage() {
       {/* Meal Type Preferences */}
       <Card>
         <CardHeader>
-          <CardTitle>Preferred Meal Types</CardTitle>
+          <CardTitle className="font-display text-xl">Preferred Meal Types</CardTitle>
           <CardDescription>
             Select which meals you want to plan for
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Preferred meal types">
             {MEAL_TYPES.map((mealType) => {
               const isSelected = selectedMeals.includes(mealType);
               return (
                 <Badge
                   key={mealType}
                   variant={isSelected ? "default" : "outline"}
-                  className="cursor-pointer select-none px-4 py-2 text-sm capitalize"
+                  className="cursor-pointer select-none rounded-full px-4 py-2 text-sm capitalize transition-all hover:shadow-sm"
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  tabIndex={0}
                   onClick={() => toggleMealType(mealType)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleMealType(mealType);
+                    }
+                  }}
                 >
                   {isSelected && <Check className="mr-1 h-3 w-3" />}
                   {mealType}
@@ -169,21 +180,30 @@ export default function PreferencesPage() {
       {/* Dietary Restrictions */}
       <Card>
         <CardHeader>
-          <CardTitle>Dietary Restrictions</CardTitle>
+          <CardTitle className="font-display text-xl">Dietary Restrictions</CardTitle>
           <CardDescription>
             Select any dietary restrictions or preferences (optional)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Dietary restrictions">
             {DIETARY_RESTRICTIONS.map((restriction) => {
               const isSelected = selectedRestrictions.includes(restriction);
               return (
                 <Badge
                   key={restriction}
                   variant={isSelected ? "default" : "outline"}
-                  className="cursor-pointer select-none px-3 py-1.5 text-sm capitalize"
+                  className="cursor-pointer select-none rounded-full px-3 py-1.5 text-sm capitalize transition-all hover:shadow-sm"
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  tabIndex={0}
                   onClick={() => toggleRestriction(restriction)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleRestriction(restriction);
+                    }
+                  }}
                 >
                   {isSelected && <Check className="mr-1 h-3 w-3" />}
                   {restriction}

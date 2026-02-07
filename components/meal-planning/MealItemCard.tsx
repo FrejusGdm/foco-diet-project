@@ -42,8 +42,9 @@ export default function MealItemCard({
   return (
     <Card
       className={cn(
-        "transition-all hover:shadow-md",
-        isSelected && "ring-2 ring-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20",
+        "border-l-[3px] border-l-transparent transition-all hover:shadow-md",
+        isSelected && "ring-2 ring-primary/50 border-l-primary bg-primary/5",
+        !isSelected && "hover:border-l-border",
         className
       )}
     >
@@ -57,7 +58,7 @@ export default function MealItemCard({
             </div>
           </div>
           <div className="text-right">
-            <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+            <span className="tabular-nums text-lg font-bold" style={{ color: "var(--color-calories)" }}>
               {calories}
             </span>
             <span className="text-xs text-muted-foreground"> kcal</span>
@@ -90,7 +91,7 @@ export default function MealItemCard({
           <Button
             variant="outline"
             size="sm"
-            className="w-full gap-1 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950"
+            className="w-full gap-1 text-primary hover:bg-primary/5 hover:text-primary"
             onClick={onAdd}
           >
             <Plus className="h-3 w-3" />
