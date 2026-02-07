@@ -1,15 +1,31 @@
 # Foco Diet Planner
 
-A modern web application that helps students plan meals at Foco (Downwood dining services) based on their calorie goals. Instead of clicking through endless menus, set your calorie target and get a streamlined meal planning experience.
+I built this because trying to diet while eating at Foco is genuinely painful.
+
+If you're a Dartmouth student, you know the deal — Foco (53 Commons) is where you eat most of your meals. The dining website shows you what's being served, but that's about it. There's no way to say "I have 800 calories left for dinner, what can I actually eat?" You're left guessing, mentally adding up numbers, or just giving up and grabbing whatever looks good.
+
+I got tired of that. I wanted to set a calorie target for the day, pull up tonight's menu, and build a plate that actually fits my goals — with a running total that updates as I add items. That's what this app does.
+
+## Why I Built This
+
+Every semester I'd try to be more intentional about what I eat. Cut, bulk, maintain — whatever the goal was, it always ran into the same wall: Foco's menu changes daily, the nutrition info is buried, and there's no tool that ties it all together into a plan.
+
+The dining site lists items, sure. But it doesn't let you:
+- Set a calorie or protein budget
+- Build a meal and see the totals add up
+- Filter by dietary restrictions
+- Get suggestions for what fits your remaining budget
+
+I kept wishing someone would build this. Eventually I just built it myself.
 
 ## Features
 
-- **Calorie Goal Tracking** - Set daily calorie and protein goals, track progress in real-time
-- **Daily Menu Browser** - Browse breakfast, lunch, and dinner options with full nutritional info
-- **Smart Meal Planning** - Build meal plans with running calorie totals
-- **Automated Menu Scraping** - Daily scraping of the Foco website via Browserbase (cloud browser automation)
-- **Real-time Updates** - Powered by Convex reactive queries - UI updates instantly
-- **Modern UI** - Built with shadcn/ui components, Tailwind CSS, and responsive design
+- **Real-time menu data** - Pulled directly from Dartmouth's dining API with full nutritional info
+- **Calorie & protein goal tracking** - Set your targets and see color-coded progress throughout the day
+- **Smart meal planning** - Build your plate with a running calorie total that updates as you add items
+- **Dietary restriction filters** - Filter out items that don't match your diet
+- **Dark mode** - Because sometimes you're planning tomorrow's meals at 2 AM
+- **Real-time updates** - Powered by Convex reactive queries, the UI stays in sync instantly
 
 ## Tech Stack
 
@@ -140,14 +156,14 @@ Four collections in Convex:
 | `mealPlans` | User's selected meals per day | by_userId_date |
 | `scrapeLog` | Scraping operation history | by_date |
 
-## Scraping
+## Menu Data
 
-Menu data is collected via Browserbase (cloud browser service) + Playwright:
+Menu data is fetched from Dartmouth's public dining API:
 
+- **Source**: `https://menu.dartmouth.edu/menuapi/mealitems?dates=YYYYMMDD`
 - **Schedule**: Daily at 5:00 AM UTC via Convex cron job
-- **Method**: Stealth-mode browser navigates the Foco website, clicks through meal tabs, extracts nutritional data
+- **Data**: Full nutritional info (calories, protein, fat, carbs, allergens) for all dining locations
 - **Deduplication**: Items are identified by a composite key (`name-location-mealType-date`)
-- **Debugging**: Each session has a replay URL in the Browserbase dashboard
 
 ## Deployment
 
