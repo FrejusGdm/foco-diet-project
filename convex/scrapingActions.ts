@@ -133,6 +133,7 @@ export const scrapeFocoMenu = action({
             fiber: fiber || undefined,
             servingSize: item.portionSize || undefined,
             description: item.ingredients || undefined,
+            imageUrl: item.imagePath || undefined,
           });
           totalInserted++;
         }

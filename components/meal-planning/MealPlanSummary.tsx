@@ -9,7 +9,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import CalorieProgress from "./CalorieProgress";
 import NutritionBadge from "./NutritionBadge";
-import { Trash2, UtensilsCrossed } from "lucide-react";
+import { Trash2, UtensilsCrossed, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MealItem {
@@ -30,6 +30,7 @@ interface MealPlanSummaryProps {
   };
   onRemoveMeal?: (mealType: string, itemId: string) => void;
   onClearPlan?: () => void;
+  onSuggest?: () => void;
 }
 
 /**
@@ -43,6 +44,7 @@ export default function MealPlanSummary({
   meals,
   onRemoveMeal,
   onClearPlan,
+  onSuggest,
 }: MealPlanSummaryProps) {
   const allMeals = [
     ...meals.breakfast,
@@ -103,6 +105,18 @@ export default function MealPlanSummary({
             variant="protein"
           />
         </div>
+
+        {onSuggest && totalCalories < calorieGoal && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+            onClick={onSuggest}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Suggest items ({Math.max(0, calorieGoal - totalCalories)} kcal remaining)
+          </Button>
+        )}
 
         <Separator className="bg-border/60" />
 

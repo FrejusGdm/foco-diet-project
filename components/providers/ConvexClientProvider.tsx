@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
+import { ThemeProvider } from "next-themes";
 
 const convexUrl =
   process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://placeholder.convex.cloud";
@@ -23,10 +24,10 @@ function ConvexClerkProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Root provider that wraps the app with Clerk auth and Convex real-time backend.
+ * Root provider that wraps the app with theme, Clerk auth, and Convex real-time backend.
  *
  * Provider hierarchy:
- * ClerkProvider -> ConvexProviderWithClerk -> App
+ * ThemeProvider -> ClerkProvider -> ConvexProviderWithClerk -> App
  *
  * When Clerk keys are not configured (e.g., during initial setup),
  * renders children without auth to allow the app to build and display
@@ -34,12 +35,18 @@ function ConvexClerkProvider({ children }: { children: ReactNode }) {
  */
 export default function Providers({ children }: { children: ReactNode }) {
   if (!hasValidClerkKey) {
-    return <>{children}</>;
+    return (
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {children}
+      </ThemeProvider>
+    );
   }
 
   return (
-    <ClerkProvider>
-      <ConvexClerkProvider>{children}</ConvexClerkProvider>
-    </ClerkProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ClerkProvider>
+        <ConvexClerkProvider>{children}</ConvexClerkProvider>
+      </ClerkProvider>
+    </ThemeProvider>
   );
 }

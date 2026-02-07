@@ -134,6 +134,7 @@ export const insert = internalMutation({
     fiber: v.optional(v.number()),
     description: v.optional(v.string()),
     servingSize: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Deduplication check

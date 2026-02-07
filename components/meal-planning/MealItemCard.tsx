@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import NutritionBadge from "./NutritionBadge";
 import { Plus, Minus, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { useState } from "react";
 
 interface MealItemCardProps {
   name: string;
@@ -17,6 +19,7 @@ interface MealItemCardProps {
   location: string;
   carbs?: number;
   fat?: number;
+  imageUrl?: string;
   isSelected?: boolean;
   onAdd?: () => void;
   onRemove?: () => void;
@@ -34,20 +37,36 @@ export default function MealItemCard({
   location,
   carbs,
   fat,
+  imageUrl,
   isSelected = false,
   onAdd,
   onRemove,
   className,
 }: MealItemCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const showImage = imageUrl && !imgError;
+
   return (
     <Card
       className={cn(
-        "border-l-[3px] border-l-transparent transition-all hover:shadow-md",
+        "border-l-[3px] border-l-transparent transition-all hover:shadow-md overflow-hidden",
         isSelected && "ring-2 ring-primary/50 border-l-primary bg-primary/5",
         !isSelected && "hover:border-l-border",
         className
       )}
     >
+      {showImage && (
+        <div className="relative h-32 w-full bg-muted">
+          <Image
+            src={imageUrl}
+            alt={name}
+            fill
+            sizes="(max-width: 640px) 100vw, 50vw"
+            className="object-cover"
+            onError={() => setImgError(true)}
+          />
+        </div>
+      )}
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
