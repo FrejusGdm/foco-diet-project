@@ -67,9 +67,11 @@ Build a modern web application that helps users plan their meals at Foco (dining
 - **Authentication**: Clerk (integrated with Convex)
 
 ### Scraping & Automation
-- **Scraping Tool**: Puppeteer or Playwright (browser automation)
+- **Scraping Tool**: Browserbase (recommended) or Firecrawl (alternative)
+  - **Browserbase**: Cloud-based browser automation with Playwright/Puppeteer compatibility, stealth mode, bot detection bypass
+  - **Firecrawl**: AI-focused web scraping API with structured data extraction and actions support
 - **Scheduling**: Convex scheduled functions (cron jobs)
-- **Browser**: Headless Chrome/Firefox
+- **Why Browserbase**: Better for complex interactions (clicking through menus), handles JavaScript-heavy sites, built-in stealth mode
 
 ### Development Tools
 - **Type Safety**: TypeScript strict mode
@@ -231,6 +233,11 @@ pnpm add @radix-ui/react-*  # For shadcn/ui
 # Additional utilities
 pnpm add date-fns  # For date manipulation
 pnpm add zod       # For schema validation (if not using Convex v)
+
+# Scraping (choose one)
+pnpm add @browserbasehq/sdk playwright-core  # Browserbase (recommended)
+# OR
+pnpm add firecrawl-js  # Firecrawl (alternative)
 ```
 
 ### Step 3: Initialize Convex
@@ -628,6 +635,8 @@ export const addMeal = mutation({
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { Browserbase } from "@browserbasehq/sdk";
+import { chromium } from "playwright-core";
 
 // Action: Scrape Foco menu for a specific date
 export const scrapeFocoMenu = action({
@@ -635,37 +644,98 @@ export const scrapeFocoMenu = action({
     date: v.string(), // ISO date string
   },
   handler: async (ctx, args) => {
-    // Use Puppeteer or Playwright to scrape
+    // Use Browserbase + Playwright to scrape
     // This is an action because it needs to make external HTTP requests
     
-    // Pseudo-code:
-    // 1. Launch headless browser
-    // 2. Navigate to Foco website
-    // 3. Click through breakfast, lunch, dinner menus
-    // 4. Extract menu items with calories, protein, etc.
-    // 5. For each item, call menuItems.insert mutation
-    
-    // Example structure:
-    const menuItems = await scrapeFocoWebsite(args.date);
-    
-    for (const item of menuItems) {
-      await ctx.runMutation(internal.menuItems.insert, {
-        name: item.name,
-        calories: item.calories,
-        protein: item.protein,
-        location: item.location,
-        mealType: item.mealType,
-        date: args.date,
-        uniqueKey: `${item.name}-${item.location}-${item.mealType}-${args.date}`,
+    const browserbase = new Browserbase({
+      apiKey: process.env.BROWSERBASE_API_KEY!,
+    });
+
+    // Create Browserbase session with stealth mode
+    const session = await browserbase.sessions.create({
+      projectId: process.env.BROWSERBASE_PROJECT_ID!,
+      stealth: true, // Enable bot detection bypass
+    });
+
+    try {
+      // Connect Playwright to Browserbase
+      const browser = await chromium.connectOverCDP(
+        `wss://connect.browserbase.com?apiKey=${process.env.BROWSERBASE_API_KEY}&sessionId=${session.id}`
+      );
+
+      const context = browser.contexts[0];
+      const page = context.pages[0] || await context.newPage();
+
+      await page.goto(process.env.FOCO_WEBSITE_URL!, {
+        waitUntil: "networkidle",
       });
+
+      // Scrape each meal type
+      const menuItems = await scrapeFocoWebsite(page, args.date);
+
+      // Insert items into database
+      for (const item of menuItems) {
+        await ctx.runMutation(internal.menuItems.insert, {
+          name: item.name,
+          calories: item.calories,
+          protein: item.protein,
+          location: item.location,
+          mealType: item.mealType,
+          date: args.date,
+          uniqueKey: `${item.name}-${item.location}-${item.mealType}-${args.date}`,
+        });
+      }
+
+      await browser.close();
+    } catch (error) {
+      console.error("Scraping failed:", error);
+      // Session replay: https://www.browserbase.com/sessions/${session.id}
+      throw error;
     }
   },
 });
 
-// Helper function to scrape (implement with Puppeteer/Playwright)
-async function scrapeFocoWebsite(date: string) {
-  // Implementation with browser automation
-  // Return array of menu items
+// Helper function to scrape using Browserbase session
+async function scrapeFocoWebsite(page: Page, date: string) {
+  const allItems: MenuItem[] = [];
+
+  // Scrape breakfast
+  await page.click('[data-meal="breakfast"]');
+  await page.waitForTimeout(2000);
+  const breakfastItems = await extractMenuItems(page, "breakfast");
+  allItems.push(...breakfastItems);
+
+  // Scrape lunch
+  await page.click('[data-meal="lunch"]');
+  await page.waitForTimeout(2000);
+  const lunchItems = await extractMenuItems(page, "lunch");
+  allItems.push(...lunchItems);
+
+  // Scrape dinner
+  await page.click('[data-meal="dinner"]');
+  await page.waitForTimeout(2000);
+  const dinnerItems = await extractMenuItems(page, "dinner");
+  allItems.push(...dinnerItems);
+
+  return allItems;
+}
+
+async function extractMenuItems(page: Page, mealType: string) {
+  // Extract menu items from the page
+  // Adjust selectors based on actual Foco website structure
+  return await page.$$eval(".menu-item", (elements) => {
+    return elements.map((el) => ({
+      name: el.querySelector(".item-name")?.textContent?.trim() || "",
+      calories: parseInt(
+        el.querySelector(".calories")?.textContent?.match(/\d+/)?.[0] || "0"
+      ),
+      protein: parseFloat(
+        el.querySelector(".protein")?.textContent?.match(/[\d.]+/)?.[0] || "0"
+      ),
+      location: el.querySelector(".location")?.textContent?.trim() || "",
+      mealType: mealType,
+    }));
+  });
 }
 ```
 
@@ -776,54 +846,168 @@ components/
 - May require authentication or session management
 - Need to handle different locations
 - Menu structure may change over time
+- Bot detection and CAPTCHAs
 
 ### Implementation Strategy
 
-#### Option 1: Puppeteer (Recommended)
+#### Option 1: Browserbase (Recommended)
+
+**Why Browserbase:**
+- ✅ Full Playwright/Puppeteer compatibility (familiar API)
+- ✅ Built-in stealth mode (bypasses bot detection)
+- ✅ Handles CAPTCHAs automatically
+- ✅ Session persistence
+- ✅ No infrastructure management (serverless)
+- ✅ Perfect for complex interactions (clicking through menus)
+
+**Setup:**
+```bash
+pnpm add @browserbasehq/sdk playwright-core
+# OR
+pnpm add @browserbasehq/sdk puppeteer-core
+```
+
+**Implementation with Browserbase + Playwright:**
 ```typescript
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright-core';
+import { Browserbase } from '@browserbasehq/sdk';
 
 async function scrapeFocoMenu(date: string) {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  const browserbase = new Browserbase({
+    apiKey: process.env.BROWSERBASE_API_KEY!,
   });
-  
+
+  // Create a Browserbase session
+  const session = await browserbase.sessions.create({
+    projectId: process.env.BROWSERBASE_PROJECT_ID!,
+    // Enable stealth mode for bot detection bypass
+    stealth: true,
+  });
+
   try {
-    const page = await browser.newPage();
-    await page.goto('https://foco-website-url.com');
-    
+    // Connect Playwright to Browserbase session
+    const browser = await chromium.connectOverCDP(
+      `wss://connect.browserbase.com?apiKey=${process.env.BROWSERBASE_API_KEY}&sessionId=${session.id}`
+    );
+
+    const context = browser.contexts[0];
+    const page = context.pages[0] || await context.newPage();
+
+    await page.goto('https://foco-website-url.com', {
+      waitUntil: 'networkidle',
+    });
+
     // Wait for content to load
     await page.waitForSelector('.menu-container');
-    
+
     // Scrape breakfast
+    await page.click('[data-meal="breakfast"]');
+    await page.waitForTimeout(2000);
     const breakfastItems = await scrapeMealType(page, 'breakfast');
-    
+
     // Navigate to lunch
     await page.click('[data-meal="lunch"]');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     const lunchItems = await scrapeMealType(page, 'lunch');
-    
+
     // Navigate to dinner
     await page.click('[data-meal="dinner"]');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     const dinnerItems = await scrapeMealType(page, 'dinner');
-    
-    return [...breakfastItems, ...lunchItems, ...dinnerItems];
-  } finally {
+
     await browser.close();
+    return [...breakfastItems, ...lunchItems, ...dinnerItems];
+  } catch (error) {
+    console.error('Scraping failed:', error);
+    // Session replay available at: https://www.browserbase.com/sessions/${session.id}
+    throw error;
   }
 }
 
 async function scrapeMealType(page: Page, mealType: string) {
-  // Implementation to extract menu items
-  // Look for calorie information, protein, etc.
+  // Extract menu items with calories, protein, etc.
+  const items = await page.$$eval('.menu-item', (elements) => {
+    return elements.map((el) => ({
+      name: el.querySelector('.item-name')?.textContent?.trim() || '',
+      calories: parseInt(
+        el.querySelector('.calories')?.textContent?.match(/\d+/)?.[0] || '0'
+      ),
+      protein: parseFloat(
+        el.querySelector('.protein')?.textContent?.match(/[\d.]+/)?.[0] || '0'
+      ),
+      location: el.querySelector('.location')?.textContent?.trim() || '',
+      mealType: mealType,
+    }));
+  });
+
   return items;
 }
 ```
 
-#### Option 2: Playwright
-Similar approach but with Playwright API.
+**Environment Variables:**
+```env
+BROWSERBASE_API_KEY=your_api_key
+BROWSERBASE_PROJECT_ID=your_project_id
+```
+
+#### Option 2: Firecrawl (Alternative)
+
+**Why Firecrawl:**
+- ✅ Simpler API for basic scraping
+- ✅ Built-in structured data extraction (JSON schemas)
+- ✅ AI-powered extraction
+- ✅ Handles JavaScript rendering automatically
+- ⚠️ Less control over complex interactions
+
+**Setup:**
+```bash
+pnpm add firecrawl-js
+```
+
+**Implementation with Firecrawl:**
+```typescript
+import FirecrawlApp from 'firecrawl-js';
+
+async function scrapeFocoMenu(date: string) {
+  const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY! });
+
+  // Firecrawl with actions for menu navigation
+  const breakfastResult = await app.scrapeUrl('https://foco-website-url.com', {
+    formats: ['json'],
+    actions: [
+      { type: 'click', selector: '[data-meal="breakfast"]' },
+      { type: 'wait', milliseconds: 2000 },
+    ],
+    schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              calories: { type: 'number' },
+              protein: { type: 'number' },
+              location: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Repeat for lunch and dinner...
+  return breakfastResult.data.json.items;
+}
+```
+
+**Recommendation:** Use **Browserbase** for this project because:
+1. Better control over complex menu navigation
+2. More reliable for JavaScript-heavy sites
+3. Stealth mode handles bot detection
+4. Session replay helps with debugging
+5. Works seamlessly with Convex actions
 
 ### Error Handling
 - Retry logic for failed scrapes
@@ -890,7 +1074,10 @@ npx convex deploy --prod
 - [ ] `CLERK_SECRET_KEY` (prod)
 - [ ] `NEXT_PUBLIC_CONVEX_URL` (prod)
 - [ ] `CLERK_JWT_ISSUER_DOMAIN` (prod)
-- [ ] Any API keys for scraping
+- [ ] `BROWSERBASE_API_KEY` (if using Browserbase)
+- [ ] `BROWSERBASE_PROJECT_ID` (if using Browserbase)
+- [ ] `FIRECRAWL_API_KEY` (if using Firecrawl instead)
+- [ ] `FOCO_WEBSITE_URL` (Foco website URL to scrape)
 
 ---
 
@@ -940,7 +1127,9 @@ If possible, consider:
 - [Clerk Documentation](https://clerk.com/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [shadcn/ui Components](https://ui.shadcn.com)
-- [Puppeteer Documentation](https://pptr.dev)
+- [Browserbase Documentation](https://docs.browserbase.com)
+- [Browserbase API Reference](https://docs.browserbase.com/reference/introduction)
+- [Firecrawl Documentation](https://docs.firecrawl.dev)
 - [Playwright Documentation](https://playwright.dev)
 
 ---
