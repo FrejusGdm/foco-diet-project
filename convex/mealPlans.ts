@@ -241,8 +241,9 @@ export const clear = mutation({
 });
 
 // Helper: Calculate total calories and protein from a meals object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function calculateTotals(
-  ctx: { db: { get: (id: unknown) => Promise<{ calories: number; protein: number } | null> } },
+  ctx: any,
   meals: Record<string, unknown[] | undefined>
 ) {
   let calories = 0;

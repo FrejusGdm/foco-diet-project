@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { MenuItem, MealPlan, UserPreferences } from "@/lib/types";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ export default function MealPlannerPage() {
     await addMeal({
       date: today,
       mealType: activeMeal,
-      menuItemId,
+      menuItemId: menuItemId as Id<"menuItems">,
     });
   };
 
@@ -84,7 +85,7 @@ export default function MealPlannerPage() {
     await removeMeal({
       date: today,
       mealType: mealType as MealType,
-      menuItemId,
+      menuItemId: menuItemId as Id<"menuItems">,
     });
   };
 
